@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import App
+from .models import Database
+
+
+admin.site.register(App)
+admin.site.register(Database)
