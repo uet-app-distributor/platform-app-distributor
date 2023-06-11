@@ -1,6 +1,8 @@
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 
+from .models import App
+
 import json
 
 
@@ -9,7 +11,10 @@ def index(request):
 
 
 @csrf_exempt
-def generate_app_configuration(request):
-    body = json.loads(request.body)
-    print(body)
+def generate_configuration(request):
+    config = json.loads(request.body)
+    app_config = App(image_name=config['appSpec']['image'],
+                     image_version=config['appSpec']['version'],
+                     environment_vars=config['appSpec']['env'])
+    app_config.save()
     return HttpResponse("Printing request body")
