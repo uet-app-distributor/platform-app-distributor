@@ -4,5 +4,5 @@ from . import views
 
 urlpatterns = [
     path("", views.index, name="index"),
-    path("generate-configuration", views.generate_configuration, name="generate-configuration"),
+    path("add-configuration", views.add_configuration, name="add-configuration"),
 ]
