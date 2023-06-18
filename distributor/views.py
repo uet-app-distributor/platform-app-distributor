@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from .utils import Template
 
 import json
-import hashlib
+import base64
 
 
 DEFAULT_CONFIGURATION_TEMPLATE_FILE = 'configuration.yaml.j2'
@@ -17,19 +17,24 @@ def index(request):
 def generate_configration_file(config):
     def prepare_template_vars():
         return {
-            'frontend_image': config['frontend']['image'],
-            'frontend_version': config['frontend']['version'],
-            'backend_image': config['backend']['image'],
-            'backend_version': config['backend']['version'],
-            'database_image': config['database']['image']
+            'project':                  config['project'],
+            'description':              config['description'],
+            'frontend_image':           config['frontend']['image'],
+            'frontend_image_version':   config['frontend']['version'],
+            'backend_image':            config['backend']['image'],
+            'backend_image_version':    config['backend']['version'],
+            'database_image':           config['database']['image']
         }
 
     def prepare_output_filename():
-        return hashlib.md5(config['project'].encode())
+        project = config['project']
+        project_encode = base64.b64encode(project.encode('ascii'))
+        return f'{project}_{project_encode.decode("ascii")[:8]}'
 
     template_generator = Template()
     template_vars = prepare_template_vars()
     config_filename = prepare_output_filename()
+    print(config_filename)
     template_generator.generate_from_template(DEFAULT_CONFIGURATION_TEMPLATE_FILE,
                                               template_vars,
                                               config_filename)

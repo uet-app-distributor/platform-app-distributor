@@ -1,6 +1,8 @@
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-DEFAULT_TEMPLATE_DIR = './templates'
+DEFAULT_TEMPLATE_DIR = 'distributor/templates'
+
+
 class Template:
     def __init__(self):
         self.env = Environment(
