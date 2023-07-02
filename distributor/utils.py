@@ -1,13 +1,16 @@
 import base64
+import string
+import random
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
 DEFAULT_TEMPLATE_DIR = 'distributor/templates'
 
-def prepare_random_suffix(string):
-    base64_bytes = base64.b64encode(string.encode("ascii"))
-    return base64_bytes.decode("ascii")[:16]
+def append_random_suffix(content):
+    characters = string.ascii_letters + string.digits
+    random_string = ''.join(random.choice(characters) for _ in range(8))
+    return f"{content}_{random_string}"
 
 
 class Template:

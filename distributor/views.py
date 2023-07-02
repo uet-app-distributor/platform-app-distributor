@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from google.cloud import storage
 
-from .utils import Template, prepare_random_suffix
+from .utils import Template, append_random_suffix
 
 
 DEFAULT_CONFIGURATION_TEMPLATE_FILE = 'configuration.yaml.j2'
@@ -66,7 +66,7 @@ def distribute(request):
 
     raw_config = json.loads(request.body)
     app_config = generate_config()
-    app_blob_name = f"{DEFAULT_GCS_CUSTOMER_APPS}/{prepare_random_suffix(app_config)}"
+    app_blob_name = f"{DEFAULT_GCS_CUSTOMER_APPS}/{append_random_suffix(raw_config['project'])}"
     upload_to_gcs()
     trigger_deployment()
     return HttpResponse("Succeed")
