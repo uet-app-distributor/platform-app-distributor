@@ -60,9 +60,12 @@ def distribute(request):
             "Authorization": f"Bearer {os.getenv('GITHUB_ACTIONS_ACCESS_TOKEN')}"
         }
         data = {
-            "app_config": app_blob_name
+            "ref": "main",
+            "inputs": {
+                "app_blob": app_blob_name
+            }
         }
-        print(requests.post(github_actions_api_url, data=data, headers=headers).text)
+        print(requests.post(github_actions_api_url, data=json.dumps(data), headers=headers).text)
 
     raw_config = json.loads(request.body)
     app_config = generate_config()
