@@ -7,7 +7,7 @@ DEFAULT_TEMPLATE_DIR = 'distributor/templates'
 
 def prepare_random_suffix(string):
     base64_bytes = base64.b64encode(string.encode("ascii"))
-    return base64_bytes.decode("ascii")[:8]
+    return base64_bytes.decode("ascii")[:16]
 
 
 class Template:

@@ -1,4 +1,6 @@
+import os
 import json
+import requests
 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
@@ -10,6 +12,9 @@ from .utils import Template, prepare_random_suffix
 DEFAULT_CONFIGURATION_TEMPLATE_FILE = 'configuration.yaml.j2'
 DEFAULT_GCS_BUCKET = 'uet-app-distributor'
 DEFAULT_GCS_CUSTOMER_APPS = 'customer_apps'
+DEFAULT_DEPLOYMENT_REPO = 'platform-job-centre'
+DEFAULT_DEPLOYMENT_REPO_OWNER = 'uet-app-distributor'
+DEFAULT_DEPLOYMENT_WORKFLOW_FILE = 'application-deployment.yaml'
 
 
 def index(request):
@@ -39,19 +44,29 @@ def distribute(request):
         storage_client = storage.Client()
         bucket = storage_client.bucket(DEFAULT_GCS_BUCKET)
         if bucket.exists():
-            blob_name = f"{DEFAULT_GCS_CUSTOMER_APPS}/{prepare_random_suffix(app_config)}"
-            blob = bucket.blob(blob_name)
+            blob = bucket.blob(app_blob_name)
             blob.upload_from_string(app_config, if_generation_match=0)
-            print(f"Blob {blob_name} uploaded to {DEFAULT_GCS_BUCKET}.")
+            print(f"Blob {app_blob_name} uploaded to {DEFAULT_GCS_BUCKET}.")
         else:
             print(f"Bucket {DEFAULT_GCS_BUCKET}.")
 
     def trigger_deployment():
-        print("Triggering deploy...")
-        pass
+        owner = DEFAULT_DEPLOYMENT_REPO_OWNER
+        repo = DEFAULT_DEPLOYMENT_REPO
+        workflow_file = DEFAULT_DEPLOYMENT_WORKFLOW_FILE
+        github_actions_api_url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow_file}/dispatches"
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {os.getenv('GITHUB_ACTIONS_ACCESS_TOKEN')}"
+        }
+        data = {
+            "app_config": app_blob_name
+        }
+        print(requests.post(github_actions_api_url, data=data, headers=headers).text)
 
     raw_config = json.loads(request.body)
     app_config = generate_config()
+    app_blob_name = f"{DEFAULT_GCS_CUSTOMER_APPS}/{prepare_random_suffix(app_config)}"
     upload_to_gcs()
     trigger_deployment()
     return HttpResponse("Succeed")
