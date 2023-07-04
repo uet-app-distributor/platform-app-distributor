@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  namespace: uet-app-distributor
+  labels:
+    app: uet-app-distributor
+  name: uet-app-distributor
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: uet-app-distributor
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: uet-app-distributor
+    spec:
+      containers:
+        - image: thainm/uet-app-distributor:latest
+          name: distributor
+          resources: {}
+status: {}
