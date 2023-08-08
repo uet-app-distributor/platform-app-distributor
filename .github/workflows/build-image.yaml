@@ -7,7 +7,7 @@ on:
       - "main"
 
 jobs:
-  docker:
+  prepare-docker-image:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
