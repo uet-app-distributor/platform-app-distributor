@@ -27,4 +27,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ secrets.DOCKERHUB_TOKEN }}/uet-app-distributor:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/uet-app-distributor:latest
