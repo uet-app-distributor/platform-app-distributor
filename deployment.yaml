@@ -1,7 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  creationTimestamp: null
   namespace: uet-app-distributor
   labels:
     app: distributor
