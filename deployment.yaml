@@ -4,22 +4,36 @@ metadata:
   creationTimestamp: null
   namespace: uet-app-distributor
   labels:
-    app: uet-app-distributor
-  name: uet-app-distributor
+    app: distributor
+  name: distributor
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
-      app: uet-app-distributor
-  strategy: {}
+      app: distributor
   template:
     metadata:
-      creationTimestamp: null
       labels:
-        app: uet-app-distributor
+        app: distributor
     spec:
       containers:
         - image: thainm/uet-app-distributor:latest
           name: distributor
+          env:
+            - name: DB_NAME
+              value: uet_app_distributor
+            - name: DB_HOST
+              value: uad-postgres-cluster
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: distributor.uad-postgres-cluster.credentials.postgresql.acid.zalan.do
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: distributor.uad-postgres-cluster.credentials.postgresql.acid.zalan.do
+                  key: password
           resources: {}
-status: {}
