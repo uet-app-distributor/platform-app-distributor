@@ -18,6 +18,8 @@ spec:
       containers:
         - image: thainm/uet-app-distributor:latest
           name: distributor
+          command:
+            - python manage.py runserver 0.0.0.0:8080
           env:
             - name: DB_NAME
               value: uet_app_distributor
