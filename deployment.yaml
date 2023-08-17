@@ -52,9 +52,9 @@ metadata:
 spec:
   ports:
     - name: distributor
-      port: 8000
+      port: 8080
       protocol: TCP
-      targetPort: 8000
+      targetPort: 8080
   selector:
     app: distributor
   type: ClusterIP
@@ -76,4 +76,4 @@ spec:
               service:
                 name: distributor-service
                 port:
-                  number: 8000
+                  number: 8080
