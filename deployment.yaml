@@ -36,3 +36,40 @@ spec:
                   name: distributor.uad-postgres-cluster.credentials.postgresql.acid.zalan.do
                   key: password
           resources: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: distributor-service
+  name: distributor-service
+  namespace: uet-app-distributor
+spec:
+  ports:
+    - name: distributor
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+  selector:
+    app: distributor
+  type: ClusterIP
+status:
+  loadBalancer: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: distributor-ingress
+  namespace: uet-app-distributor
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: distributor-service
+                port:
+                  number: 8000
