@@ -23,6 +23,8 @@ spec:
             - -c
             - "python manage.py runserver 0.0.0.0:8080"
           env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secrets/distributor.json
             - name: DB_NAME
               value: uet_app_distributor
             - name: DB_HOST
@@ -39,6 +41,14 @@ spec:
                 secretKeyRef:
                   name: distributor.uad-postgres-cluster.credentials.postgresql.acid.zalan.do
                   key: password
+          volumeMounts:
+            - name: service-account
+              mountPath: /secrets
+              readOnly: true
+          volumes:
+            - name: service-account
+              secret:
+                secretName: distributor-sa
           resources: {}
 ---
 apiVersion: v1

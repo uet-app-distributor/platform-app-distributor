@@ -4,8 +4,6 @@ WORKDIR /app
 
 COPY . .
 
-ENV GOOGLE_APPLICATION_CREDENTIALS=/app/service_account.json
-
 RUN pip install -r requirement.txt
 
 CMD ["python", "manage.py", "runserver"]
