@@ -41,6 +41,11 @@ spec:
                 secretKeyRef:
                   name: distributor.uad-postgres-cluster.credentials.postgresql.acid.zalan.do
                   key: password
+            - name: GITHUB_ACTIONS_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: distributor-github-access-token
+                  key: access_token
           volumeMounts:
             - name: service-account
               mountPath: /secrets
