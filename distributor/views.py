@@ -14,7 +14,7 @@ DEFAULT_GCS_BUCKET = 'uet-app-distributor'
 DEFAULT_GCS_CUSTOMER_APPS = 'customer_apps'
 DEFAULT_DEPLOYMENT_REPO = 'platform-job-centre'
 DEFAULT_DEPLOYMENT_REPO_OWNER = 'uet-app-distributor'
-DEFAULT_DEPLOYMENT_WORKFLOW_FILE = 'application-deployment.yaml'
+DEFAULT_DEPLOYMENT_WORKFLOW_FILE = 'deploy-customer-app.yaml'
 
 
 def index(request):
