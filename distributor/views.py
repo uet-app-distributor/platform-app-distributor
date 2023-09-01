@@ -26,13 +26,14 @@ def distribute(request):
     def generate_config():
         def prepare_template_vars():
             return {
-                'project':                  raw_config['project'],
-                'description':              raw_config['description'],
-                'frontend_image':           raw_config['frontend']['image'],
-                'frontend_image_version':   raw_config['frontend']['version'],
-                'backend_image':            raw_config['backend']['image'],
-                'backend_image_version':    raw_config['backend']['version'],
-                'database_image':           raw_config['database']['image']
+                'app_name':               raw_config['app_name'],
+                'app_owner':              raw_config['app_owner'],
+                'description':            raw_config['description'],
+                'frontend_image':         raw_config['frontend']['image'],
+                'frontend_image_version': raw_config['frontend']['version'],
+                'backend_image':          raw_config['backend']['image'],
+                'backend_image_version':  raw_config['backend']['version'],
+                'database_image':         raw_config['database']['image']
             }
 
         template_generator = Template()
@@ -46,7 +47,7 @@ def distribute(request):
         if bucket.exists():
             blob = bucket.blob(app_blob_name)
             blob.upload_from_string(app_config, if_generation_match=0)
-            print(f"Blob {app_blob_name} uploaded to {DEFAULT_GCS_BUCKET}.")
+            print(f"Blob {app_blob_name} uploaded to bucket {DEFAULT_GCS_BUCKET}.")
         else:
             print(f"Bucket {DEFAULT_GCS_BUCKET}.")
 
@@ -62,14 +63,17 @@ def distribute(request):
         data = {
             "ref": "main",
             "inputs": {
-                "app_blob": app_blob_name
+                "customer_app_blob": f"gs://{DEFAULT_GCS_BUCKET}/{app_blob_name}",
+                "customer_app_name": raw_config["app_name"],
+                "github_user": raw_config["github_user"],
+                "github_repo": raw_config["github_repo"]
             }
         }
         print(requests.post(github_actions_api_url, data=json.dumps(data), headers=headers).text)
 
     raw_config = json.loads(request.body)
     app_config = generate_config()
-    app_blob_name = f"{DEFAULT_GCS_CUSTOMER_APPS}/{append_random_suffix(raw_config['project'])}"
+    app_blob_name = f"{DEFAULT_GCS_CUSTOMER_APPS}/{append_random_suffix(raw_config['app_name'])}"
     upload_to_gcs()
     trigger_deployment()
     return HttpResponse("Succeed")
