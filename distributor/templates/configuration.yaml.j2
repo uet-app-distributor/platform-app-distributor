@@ -1,12 +1,17 @@
 ---
 app_name: {{ app_name }}
 app_owner: {{ app_owner }}
-description: {{ description }}
+{% if enabled_frontend %}
 frontend:
   image: {{ frontend_image }}
   version: {{ frontend_image_version }}
+{% endif -%}
+{% if enabled_backend %}
 backend:
   image: {{ backend_image }}
   version: {{ backend_image_version }}
+{% endif -%}
+{% if enabled_database %}
 database:
   image: {{ database_image }}
+{% endif -%}

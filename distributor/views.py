@@ -6,15 +6,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from google.cloud import storage
 
-from .utils import Template, append_random_suffix
-
-
-DEFAULT_CONFIGURATION_TEMPLATE_FILE = 'configuration.yaml.j2'
-DEFAULT_GCS_BUCKET = 'uet-app-distributor'
-DEFAULT_GCS_CUSTOMER_APPS = 'customer_apps'
-DEFAULT_DEPLOYMENT_REPO = 'platform-job-centre'
-DEFAULT_DEPLOYMENT_REPO_OWNER = 'uet-app-distributor'
-DEFAULT_DEPLOYMENT_WORKFLOW_FILE = 'deploy-customer-app.yaml'
+from logger import logger
+from distributor.utils import Template, append_random_suffix
+from settings import (
+    APP_CONFIG_TEMPLATE,
+    DISTRIBUTOR_GCS_BUCKET,
+    CUSTOMER_APPS_GCS_FOLDER,
+    DEPLOYMENT_REPO,
+    DEPLOYMENT_REPO_OWNER,
+    DEPLOYMENT_WORKFLOW_FILE
+)
 
 
 def index(request):
@@ -23,39 +24,50 @@ def index(request):
 
 @csrf_exempt
 def distribute(request):
-    def generate_config():
-        def prepare_template_vars():
-            return {
-                'app_name':               raw_config['app_name'],
-                'app_owner':              raw_config['app_owner'],
-                'description':            raw_config['description'],
-                'frontend_image':         raw_config['frontend']['image'],
-                'frontend_image_version': raw_config['frontend']['version'],
-                'backend_image':          raw_config['backend']['image'],
-                'backend_image_version':  raw_config['backend']['version'],
-                'database_image':         raw_config['database']['image']
-            }
+    def prepare_template_vars():
+        template_vars = {
+            'app_name': raw_config['app_name'],
+            'app_owner': raw_config['app_owner'],
+            'enabled_frontend': raw_config['enabled_frontend'],
+            'enabled_backend': raw_config['enabled_backend'],
+            'enabled_database': raw_config['enabled_database'],
+        }
 
+        if template_vars['enabled_frontend']:
+            template_vars.update({
+                'frontend_image': raw_config['frontend']['image'],
+                'frontend_image_version': raw_config['frontend']['version']
+            })
+
+        if template_vars['enabled_backend']:
+            template_vars.update({
+                'backend_image': raw_config['backend']['image'],
+                'backend_image_version': raw_config['backend']['version']
+            })
+
+        if template_vars['enabled_database']:
+            template_vars['database_image'] = raw_config['database']['image']
+
+        return template_vars
+
+    def generate_config():
         template_generator = Template()
         template_vars = prepare_template_vars()
-        app_config = template_generator.generate_from_template(DEFAULT_CONFIGURATION_TEMPLATE_FILE, template_vars)
+        app_config = template_generator.generate_from_template(APP_CONFIG_TEMPLATE, template_vars)
         return app_config
 
     def upload_to_gcs():
         storage_client = storage.Client()
-        bucket = storage_client.bucket(DEFAULT_GCS_BUCKET)
+        bucket = storage_client.bucket(DISTRIBUTOR_GCS_BUCKET)
         if bucket.exists():
             blob = bucket.blob(app_blob_name)
-            blob.upload_from_string(app_config, if_generation_match=0)
-            print(f"Blob {app_blob_name} uploaded to bucket {DEFAULT_GCS_BUCKET}.")
+            blob.upload_from_string(app_config)
+            logger.info(f"Blob {app_blob_name} uploaded to bucket {DISTRIBUTOR_GCS_BUCKET}.")
         else:
-            print(f"Bucket {DEFAULT_GCS_BUCKET}.")
+            logger.info(f"Bucket {DISTRIBUTOR_GCS_BUCKET} does not exist.")
 
     def trigger_deployment():
-        owner = DEFAULT_DEPLOYMENT_REPO_OWNER
-        repo = DEFAULT_DEPLOYMENT_REPO
-        workflow_file = DEFAULT_DEPLOYMENT_WORKFLOW_FILE
-        github_actions_api_url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow_file}/dispatches"
+        github_actions_api_url = f"https://api.github.com/repos/{DEPLOYMENT_REPO_OWNER}/{DEPLOYMENT_REPO}/actions/workflows/{DEPLOYMENT_WORKFLOW_FILE}/dispatches"
         headers = {
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {os.getenv('GITHUB_ACTIONS_ACCESS_TOKEN')}"
@@ -63,17 +75,18 @@ def distribute(request):
         data = {
             "ref": "main",
             "inputs": {
-                "customer_app_blob": f"gs://{DEFAULT_GCS_BUCKET}/{app_blob_name}",
+                "customer_app_blob": f"gs://{DISTRIBUTOR_GCS_BUCKET}/{app_blob_name}",
                 "customer_app_name": raw_config["app_name"],
                 "github_user": raw_config["github_user"],
                 "github_repo": raw_config["github_repo"]
             }
         }
-        print(requests.post(github_actions_api_url, data=json.dumps(data), headers=headers).text)
+        response = requests.post(github_actions_api_url, data=json.dumps(data), headers=headers)
+        logger.info(response.text)
 
     raw_config = json.loads(request.body)
     app_config = generate_config()
-    app_blob_name = f"{DEFAULT_GCS_CUSTOMER_APPS}/{append_random_suffix(raw_config['app_name'])}"
+    app_blob_name = f"{CUSTOMER_APPS_GCS_FOLDER}/{raw_config['app_owner']}/{raw_config['app_name']}"
     upload_to_gcs()
     trigger_deployment()
     return HttpResponse("Succeed")
