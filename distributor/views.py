@@ -68,7 +68,7 @@ def distribute(request):
         logger.info(app_config)
         return app_config
 
-    def upload_to_gcs():
+    def upload_app_config():
         storage_client = storage.Client()
         bucket = storage_client.bucket(DISTRIBUTOR_GCS_BUCKET)
         if bucket.exists():
@@ -89,16 +89,18 @@ def distribute(request):
             "inputs": {
                 "customer_app_blob": f"gs://{DISTRIBUTOR_GCS_BUCKET}/{app_blob_name}",
                 "customer_app_name": raw_config["app_name"],
-                "github_user": raw_config["github_user"],
-                "github_repo": raw_config["github_repo"]
+                "be_github_user": raw_config["backend"]["github_user"] if "backend" in raw_config else "",
+                "be_github_repo": raw_config["backend"]["github_repo"] if "backend" in raw_config else "",
+                "fe_github_user": raw_config["frontend"]["github_user"] if "frontend" in raw_config else "",
+                "fe_github_user": raw_config["frontend"]["github_repo"] if "frontend" in raw_config else "",
             }
         }
         response = requests.post(deployment_workflow_url, data=json.dumps(data), headers=headers)
         logger.info(response.text)
 
     raw_config = json.loads(request.body)
-    app_config = generate_config()
     app_blob_name = f"{CUSTOMER_APPS_GCS_FOLDER}/{raw_config['app_owner']}/{raw_config['app_name']}"
-    # upload_to_gcs()
-    # trigger_deployment()
+    app_config = generate_config()
+    upload_app_config()
+    trigger_deployment()
     return HttpResponse("Succeed")
