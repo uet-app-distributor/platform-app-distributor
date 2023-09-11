@@ -5,7 +5,8 @@ app_owner: {{ app_owner }}
 {%- if enabled_frontend %}
 frontend:
   image: {{ frontend_image }}
-  version: {{ frontend_image_version -}}
+  version: {{ frontend_image_version }}
+  static_dir: {{ frontend_static_dir -}}
 {% endif %}
   {%- if frontend_env_vars %}
   env:

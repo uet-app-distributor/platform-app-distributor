@@ -46,6 +46,7 @@ def distribute(request):
             template_vars.update({
                 'frontend_image': raw_config['frontend']['image'],
                 'frontend_image_version': raw_config['frontend']['version'],
+                'frontend_static_dir': raw_config['frontend']['static_dir'],
                 'frontend_env_vars': extract_environment_vars(raw_config['frontend']['env'])
             })
 
