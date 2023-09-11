@@ -65,7 +65,6 @@ def distribute(request):
         template_generator = Template()
         template_vars = prepare_template_vars()
         app_config = template_generator.generate_from_template(APP_CONFIG_TEMPLATE, template_vars)
-        logger.info(app_config)
         return app_config
 
     def upload_app_config():
@@ -92,7 +91,7 @@ def distribute(request):
                 "be_github_user": raw_config["backend"]["github_user"] if "backend" in raw_config else "",
                 "be_github_repo": raw_config["backend"]["github_repo"] if "backend" in raw_config else "",
                 "fe_github_user": raw_config["frontend"]["github_user"] if "frontend" in raw_config else "",
-                "fe_github_user": raw_config["frontend"]["github_repo"] if "frontend" in raw_config else "",
+                "fe_github_repo": raw_config["frontend"]["github_repo"] if "frontend" in raw_config else "",
             }
         }
         response = requests.post(deployment_workflow_url, data=json.dumps(data), headers=headers)
