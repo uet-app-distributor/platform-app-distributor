@@ -1,7 +1,7 @@
 ---
 app_name: {{ app_name }}
 app_owner: {{ app_owner }}
-  
+
 {%- if enabled_frontend %}
 frontend:
   image: {{ frontend_image }}
@@ -10,7 +10,7 @@ frontend:
   {%- if frontend_env_vars %}
   env:
   {%- for key, value in frontend_env_vars.items() %}
-    {{ key }}: "{{ value }}"{% if not loop.last %},{% endif %}
+    {{ key }}: "{{ value }}"
   {%- endfor -%}
   {% endif -%}
 
