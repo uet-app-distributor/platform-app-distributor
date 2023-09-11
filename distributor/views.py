@@ -24,6 +24,15 @@ def index(request):
 
 @csrf_exempt
 def distribute(request):
+
+    def extract_environment_vars(raw_env):
+        result_env = {}
+        lines = raw_env.strip().split('\n')
+        for line in lines:
+            key, value = line.split('=')
+            result_env[key] = value
+        return result_env
+
     def prepare_template_vars():
         template_vars = {
             'app_name': raw_config['app_name'],
@@ -36,7 +45,8 @@ def distribute(request):
         if template_vars['enabled_frontend']:
             template_vars.update({
                 'frontend_image': raw_config['frontend']['image'],
-                'frontend_image_version': raw_config['frontend']['version']
+                'frontend_image_version': raw_config['frontend']['version'],
+                'frontend_env_vars': extract_environment_vars(raw_config['frontend']['env'])
             })
 
         if template_vars['enabled_backend']:
@@ -54,6 +64,7 @@ def distribute(request):
         template_generator = Template()
         template_vars = prepare_template_vars()
         app_config = template_generator.generate_from_template(APP_CONFIG_TEMPLATE, template_vars)
+        logger.info(app_config)
         return app_config
 
     def upload_to_gcs():
@@ -67,7 +78,7 @@ def distribute(request):
             logger.info(f"Bucket {DISTRIBUTOR_GCS_BUCKET} does not exist.")
 
     def trigger_deployment():
-        github_actions_api_url = f"https://api.github.com/repos/{DEPLOYMENT_REPO_OWNER}/{DEPLOYMENT_REPO}/actions/workflows/{DEPLOYMENT_WORKFLOW_FILE}/dispatches"
+        deployment_workflow_url = f"https://api.github.com/repos/{DEPLOYMENT_REPO_OWNER}/{DEPLOYMENT_REPO}/actions/workflows/{DEPLOYMENT_WORKFLOW_FILE}/dispatches"
         headers = {
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {os.getenv('GITHUB_ACTIONS_ACCESS_TOKEN')}"
@@ -81,12 +92,12 @@ def distribute(request):
                 "github_repo": raw_config["github_repo"]
             }
         }
-        response = requests.post(github_actions_api_url, data=json.dumps(data), headers=headers)
+        response = requests.post(deployment_workflow_url, data=json.dumps(data), headers=headers)
         logger.info(response.text)
 
     raw_config = json.loads(request.body)
     app_config = generate_config()
     app_blob_name = f"{CUSTOMER_APPS_GCS_FOLDER}/{raw_config['app_owner']}/{raw_config['app_name']}"
-    upload_to_gcs()
-    trigger_deployment()
+    # upload_to_gcs()
+    # trigger_deployment()
     return HttpResponse("Succeed")

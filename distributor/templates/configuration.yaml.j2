@@ -1,11 +1,19 @@
 ---
 app_name: {{ app_name }}
 app_owner: {{ app_owner }}
-{% if enabled_frontend %}
+  
+{%- if enabled_frontend %}
 frontend:
   image: {{ frontend_image }}
-  version: {{ frontend_image_version }}
-{% endif -%}
+  version: {{ frontend_image_version -}}
+{% endif %}
+  {%- if frontend_env_vars %}
+  env:
+  {%- for key, value in frontend_env_vars.items() %}
+    {{ key }}: "{{ value }}"{% if not loop.last %},{% endif %}
+  {%- endfor -%}
+  {% endif -%}
+
 {% if enabled_backend %}
 backend:
   image: {{ backend_image }}
