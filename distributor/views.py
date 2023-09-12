@@ -47,7 +47,7 @@ def distribute(request):
                 'frontend_image': raw_config['frontend']['image'],
                 'frontend_image_version': raw_config['frontend']['version'],
                 'frontend_static_dir': raw_config['frontend']['static_dir'],
-                'frontend_env_vars': extract_environment_vars(raw_config['frontend']['env'])
+                'frontend_env_vars': extract_environment_vars(raw_config['frontend']['env']) if raw_config['frontend']['env'] else ""
             })
 
         if template_vars['enabled_backend']:
@@ -94,12 +94,13 @@ def distribute(request):
             "inputs": {
                 "customer_app_blob": f"gs://{DISTRIBUTOR_GCS_BUCKET}/{app_blob_name}",
                 "customer_app_name": raw_config["app_name"],
-                "be_github_user": raw_config["backend"]["github_user"] if "backend" in raw_config else "",
-                "be_github_repo": raw_config["backend"]["github_repo"] if "backend" in raw_config else "",
-                "fe_github_user": raw_config["frontend"]["github_user"] if "frontend" in raw_config else "",
-                "fe_github_repo": raw_config["frontend"]["github_repo"] if "frontend" in raw_config else "",
+                "be_github_user": raw_config["backend"]["github_user"] if raw_config['enabled_backend'] else "none",
+                "be_github_repo": raw_config["backend"]["github_repo"] if raw_config['enabled_backend'] else "none",
+                "fe_github_user": raw_config["frontend"]["github_user"] if raw_config['enabled_frontend'] else "none",
+                "fe_github_repo": raw_config["frontend"]["github_repo"] if raw_config['enabled_frontend'] else "none",
             }
         }
+        logger.info(data)
         response = requests.post(deployment_workflow_url, data=json.dumps(data), headers=headers)
         logger.info(response.text)
 
