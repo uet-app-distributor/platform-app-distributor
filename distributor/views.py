@@ -74,6 +74,12 @@ def distribute(request):
             blob = bucket.blob(app_blob_name)
             blob.upload_from_string(app_config)
             logger.info(f"Blob {app_blob_name} uploaded to bucket {DISTRIBUTOR_GCS_BUCKET}.")
+
+            if "frontend" in raw_config:
+                if raw_config['frontend']['env']:
+                    blob = bucket.blob(f"{app_blob_name}.env")
+                    blob.upload_from_string(raw_config['frontend']['env'])
+                    logger.info(f"Env blob {app_blob_name}.env uploaded to bucket {DISTRIBUTOR_GCS_BUCKET}.")
         else:
             logger.info(f"Bucket {DISTRIBUTOR_GCS_BUCKET} does not exist.")
 
