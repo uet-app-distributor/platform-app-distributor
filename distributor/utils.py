@@ -1,6 +1,9 @@
+import os
+import json
 import base64
 import string
 import random
+import requests
 
 from logger import logger
 from google.cloud import storage
@@ -154,32 +157,32 @@ class DeploymentManager:
         )
 
     def _prepare_backend_inputs(self):
-        backend_input = {
+        backend_inputs = {
             "be_github_user": "none",
             "be_github_repo": "none",
         }
 
-        if app_info.enabled_backend:
-            backend_input = {
+        if self.app_info.enabled_backend:
+            backend_inputs = {
                 "be_github_user": self.app_info.be_github_user,
                 "be_github_repo": self.app_info.be_github_repo,
             }
 
-        return backend_input
+        return backend_inputs
 
     def _prepare_frontend_inputs(self):
-        frontend_input = {
+        frontend_inputs = {
             "fe_github_user": "none",
             "fe_github_repo": "none",
         }
 
-        if app_info.enabled_frontend:
-            frontend_input = {
+        if self.app_info.enabled_frontend:
+            frontend_inputs = {
                 "fe_github_user": self.app_info.fe_github_user,
                 "fe_github_repo": self.app_info.fe_github_repo,
             }
 
-        return backend_input
+        return frontend_inputs
 
     def _upload_app_config(self, app_config):
         storage_client = storage.Client()
@@ -193,7 +196,7 @@ class DeploymentManager:
             logger.info(f"Uploaded blob {self.app_blob} to Distributor bucket.")
 
             if self.app_info.enabled_frontend:
-                if app_info.fe_build_env:
+                if self.app_info.fe_build_env:
                     blob = bucket.blob(f"{self.app_blob}.env")
                     blob.upload_from_string(self.app_info.fe_build_env)
                     logger.info(f"Uploaded env blob to Distributor bucket.")
@@ -214,8 +217,8 @@ class DeploymentManager:
         frontend_inputs = self._prepare_frontend_inputs()
         backend_inputs = self._prepare_backend_inputs()
 
-        inputs.update(frontend_input)
-        inputs.update(backend_input)
+        inputs.update(frontend_inputs)
+        inputs.update(backend_inputs)
 
         data = {"ref": "main", "inputs": inputs}
 
