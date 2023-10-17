@@ -94,15 +94,59 @@ class DeploymentManager:
             "Authorization": f"Bearer {os.getenv('GITHUB_ACTIONS_ACCESS_TOKEN')}",
         }
 
-    def _generate_app_config():
+    def _extract_environment_vars(self, raw_env):
+        result_env = {}
+        lines = raw_env.strip().split("\n")
+
+        for line in lines:
+            key, value = line.split("=")
+            result_env[key] = value
+
+        return result_env
+
+    def _prepare_template_vars(self):
+        template_vars = {
+            "app_name": self.app_info.customer_app,
+            "app_owner": self.app_info.customer_name,
+            "enabled_frontend": self.app_info.enabled_frontend,
+            "enabled_backend": self.app_info.enabled_backend,
+            "enabled_database": self.app_info.enabled_database,
+        }
+
+        if template_vars["enabled_frontend"]:
+            frontend_config = {
+                "frontend_image": self.app_info.fe_build_image,
+                "frontend_image_version": self.app_info.fe_build_image_version,
+                "frontend_static_dir": self.app_info.fe_build_dir,
+                "frontend_env_vars": self._extract_environment_vars(
+                    self.app_info.fe_build_env
+                )
+                if self.app_info.fe_build_env
+                else "",
+            }
+            template_vars.update(frontend_config)
+
+        if template_vars["enabled_backend"]:
+            backend_config = {
+                "backend_image": self.app_info.be_runtime,
+                "backend_image_version": self.app_info.be_runtime_version,
+            }
+            template_vars.update(backend_config)
+
+        if template_vars["enabled_database"]:
+            template_vars["database_image"] = self.app_info.db_image
+
+        return template_vars
+
+    def _generate_app_config(self):
         generator = TemplateGenerator()
-        template_vars = prepare_template_vars()
+        template_vars = self._prepare_template_vars()
         app_config = generator.generate_from_template(
             APP_CONFIG_TEMPLATE, template_vars
         )
         return app_config
 
-    def _prepare_workflow_url(self):
+    def _prepare_workflow_id(self):
         return (
             CUSTOMER_MANAGED_DEPLOY_WORKFLOW
             if self.app_info.customer_managed
@@ -156,9 +200,9 @@ class DeploymentManager:
         else:
             logger.info(f"Bucket {DISTRIBUTOR_GCS_BUCKET} does not exist.")
 
-    def trigger_deployment_workflow(self):
+    def _trigger_deployment_workflow(self):
         # Prepare workflow URL
-        workflow_id = self._prepare_workflow_url()
+        workflow_id = self._prepare_workflow_id()
         workflow_url = f"https://api.github.com/repos/{DEPLOYMENT_REPO_OWNER}/{DEPLOYMENT_REPO}/actions/workflows/{workflow_id}/dispatches"
 
         # Prepare workflow inputs
@@ -185,3 +229,8 @@ class DeploymentManager:
 
         except Exception as error:
             logger.error(error)
+
+    def deploy(self):
+        app_config = self._generate_app_config()
+        self._upload_app_config(app_config)
+        self._trigger_deployment_workflow()
