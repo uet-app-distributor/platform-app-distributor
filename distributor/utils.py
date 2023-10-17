@@ -2,24 +2,186 @@ import base64
 import string
 import random
 
+from logger import logger
+from google.cloud import storage
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from settings import (
+    APP_CONFIG_TEMPLATE,
+    DISTRIBUTOR_GCS_BUCKET,
+    CUSTOMER_APPS_GCS_FOLDER,
+    CUSTOMER_MANAGED_DEPLOY_WORKFLOW,
+    DEPLOYMENT_REPO,
+    DEPLOYMENT_REPO_OWNER,
+    DEPLOYMENT_WORKFLOW_FILE,
+)
 
-DEFAULT_TEMPLATE_DIR = 'distributor/templates'
+
+DEFAULT_TEMPLATE_DIR = "distributor/templates"
+
 
 def append_random_suffix(content):
     characters = string.ascii_letters + string.digits
-    random_string = ''.join(random.choice(characters) for _ in range(8))
+    random_string = "".join(random.choice(characters) for _ in range(8))
     return f"{content}_{random_string}"
 
 
-class Template:
+class TemplateGenerator:
     def __init__(self):
         self.env = Environment(
             loader=FileSystemLoader(DEFAULT_TEMPLATE_DIR),
-            autoescape=select_autoescape())
+            autoescape=select_autoescape(),
+        )
 
     def generate_from_template(self, template, template_vars):
         template = self.env.get_template(template)
         output = template.render(template_vars)
         return output
+
+
+class CustomerAppInfo:
+    def __init__(self, raw_config):
+        self.raw_config = raw_config
+        self.customer_name = raw_config["app_owner"]
+        self.customer_app = raw_config["app_name"]
+        self.enabled_frontend = raw_config["enabled_frontend"]
+        self.enabled_backend = raw_config["enabled_backend"]
+        self.enabled_database = raw_config["enabled_database"]
+        self.customer_managed = raw_config["customer_managed"]
+
+        try:
+            if self.enabled_frontend:
+                frontend_config = raw_config["frontend"]
+                self.fe_github_user = frontend_config["github_user"]
+                self.fe_github_repo = frontend_config["github_repo"]
+                self.fe_build_image = frontend_config["image"]
+                self.fe_build_image_version = frontend_config["version"]
+                self.fe_build_dir = frontend_config["static_dir"]
+                self.fe_build_env = frontend_config["env"]
+
+            if self.enabled_backend:
+                backend_config = raw_config["backend"]
+                self.be_github_user = backend_config["github_user"]
+                self.be_github_repo = backend_config["github_repo"]
+                self.be_runtime = backend_config["image"]
+                self.be_runtime_version = backend_config["version"]
+
+            if self.enabled_database:
+                self.db_image = raw_config["database"]["image"]
+
+            if self.customer_managed:
+                cloud_config = raw_config["cloud_config"]
+                self.cloud_provider = cloud_config["provider"]
+
+                if self.cloud_provider == "aws":
+                    self.aws_access_key_id = cloud_config["aws_access_key_id"]
+                    self.aws_secret_access_key = cloud_config["aws_secret_access_key"]
+
+        except Exception as error:
+            logger.info("Invalid customer app configurations.")
+            logger.error(error)
+
+    def contain(self, key):
+        return key in self.raw_config
+
+
+class DeploymentManager:
+    def __init__(self, app_info):
+        self.app_info = app_info
+        self.app_blob = f"{CUSTOMER_APPS_GCS_FOLDER}/{app_info.customer_name}/{app_info.customer_app}"
+        self.default_headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {os.getenv('GITHUB_ACTIONS_ACCESS_TOKEN')}",
+        }
+
+    def _generate_app_config():
+        generator = TemplateGenerator()
+        template_vars = prepare_template_vars()
+        app_config = generator.generate_from_template(
+            APP_CONFIG_TEMPLATE, template_vars
+        )
+        return app_config
+
+    def _prepare_workflow_url(self):
+        return (
+            CUSTOMER_MANAGED_DEPLOY_WORKFLOW
+            if self.app_info.customer_managed
+            else DEPLOYMENT_WORKFLOW_FILE
+        )
+
+    def _prepare_backend_inputs(self):
+        backend_input = {
+            "be_github_user": "none",
+            "be_github_repo": "none",
+        }
+
+        if app_info.enabled_backend:
+            backend_input = {
+                "be_github_user": self.app_info.be_github_user,
+                "be_github_repo": self.app_info.be_github_repo,
+            }
+
+        return backend_input
+
+    def _prepare_frontend_inputs(self):
+        frontend_input = {
+            "fe_github_user": "none",
+            "fe_github_repo": "none",
+        }
+
+        if app_info.enabled_frontend:
+            frontend_input = {
+                "fe_github_user": self.app_info.fe_github_user,
+                "fe_github_repo": self.app_info.fe_github_repo,
+            }
+
+        return backend_input
+
+    def _upload_app_config(self, app_config):
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(DISTRIBUTOR_GCS_BUCKET)
+
+        if bucket.exists():
+            blob = bucket.blob(self.app_blob)
+            blob.upload_from_string(app_config)
+
+            logger.info(f"Found Distributor bucket: {DISTRIBUTOR_GCS_BUCKET}")
+            logger.info(f"Uploaded blob {self.app_blob} to Distributor bucket.")
+
+            if self.app_info.enabled_frontend:
+                if app_info.fe_build_env:
+                    blob = bucket.blob(f"{self.app_blob}.env")
+                    blob.upload_from_string(self.app_info.fe_build_env)
+                    logger.info(f"Uploaded env blob to Distributor bucket.")
+        else:
+            logger.info(f"Bucket {DISTRIBUTOR_GCS_BUCKET} does not exist.")
+
+    def trigger_deployment_workflow(self):
+        # Prepare workflow URL
+        workflow_id = self._prepare_workflow_url()
+        workflow_url = f"https://api.github.com/repos/{DEPLOYMENT_REPO_OWNER}/{DEPLOYMENT_REPO}/actions/workflows/{workflow_id}/dispatches"
+
+        # Prepare workflow inputs
+        inputs = {
+            "customer_app_blob": f"gs://{DISTRIBUTOR_GCS_BUCKET}/{self.app_blob}",
+            "customer_app_name": self.app_info.customer_app,
+        }
+
+        frontend_inputs = self._prepare_frontend_inputs()
+        backend_inputs = self._prepare_backend_inputs()
+
+        inputs.update(frontend_input)
+        inputs.update(backend_input)
+
+        data = {"ref": "main", "inputs": inputs}
+
+        # Trigger deployment
+        try:
+            response = requests.post(
+                workflow_url, data=json.dumps(data), headers=self.default_headers
+            )
+
+            logger.info(response.text)
+
+        except Exception as error:
+            logger.error(error)
