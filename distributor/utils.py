@@ -192,15 +192,11 @@ class DeploymentManager:
         return frontend_inputs
 
     def _prepare_customer_managed_infra_inputs(self):
-        infra_inputs = {"customer_provider": "none", "customer_credential_file": "none"}
-
-        if self.app_info.customer_managed:
-            infra_inputs = {
-                "customer_provider": self.app_info.cloud_provider,
-                "customer_credential_file": f"gs://{DISTRIBUTOR_GCS_BUCKET}/{self.cloud_blob}",
-            }
-
-        return infra_inputs
+        return {
+            "customer_name": self.app_info.customer_name,
+            "customer_provider": self.app_info.cloud_provider,
+            "customer_credential_file": f"gs://{DISTRIBUTOR_GCS_BUCKET}/{self.cloud_blob}",
+        }
 
     def _upload_app_config(self, app_config):
         storage_client = storage.Client()
