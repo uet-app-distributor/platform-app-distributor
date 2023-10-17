@@ -1,4 +1,5 @@
 APP_CONFIG_TEMPLATE = "configuration.yaml.j2"
+CLOUD_CONFIG_TEMPLATE = "cloud-configurations.tfvars.j2"
 
 DISTRIBUTOR_GCS_BUCKET = "uet-app-distributor"
 CUSTOMER_APPS_GCS_FOLDER = "customer_apps"
