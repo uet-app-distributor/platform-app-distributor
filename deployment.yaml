@@ -16,7 +16,7 @@ spec:
         app: distributor
     spec:
       containers:
-        - image: thainm/uet-app-distributor:latest
+        - image: thainmtrashy/uet-app-distributor:latest
           name: distributor
           command:
             - /bin/sh
