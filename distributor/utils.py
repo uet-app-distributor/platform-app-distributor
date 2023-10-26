@@ -239,6 +239,7 @@ class DeploymentManager:
         inputs = {
             "customer_app_blob": f"gs://{DISTRIBUTOR_GCS_BUCKET}/{self.app_blob}",
             "customer_app_name": self.app_info.customer_app,
+            "customer_name": self.app_info.customer_name,
         }
 
         frontend_inputs = self._prepare_frontend_inputs()
