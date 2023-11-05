@@ -69,6 +69,7 @@ class CustomerAppInfo:
                 self.be_github_repo = backend_config["github_repo"]
                 self.be_runtime = backend_config["image"]
                 self.be_runtime_version = backend_config["version"]
+                self.be_env = backend_config["env"]
 
             if self.enabled_database:
                 self.db_image = raw_config["database"]["image"]
@@ -210,10 +211,14 @@ class DeploymentManager:
             logger.info(f"Uploaded blob {self.app_blob} to Distributor bucket.")
 
             if self.app_info.enabled_frontend:
-                if self.app_info.fe_build_env:
-                    blob = bucket.blob(f"{self.app_blob}.env")
-                    blob.upload_from_string(self.app_info.fe_build_env)
-                    logger.info(f"Uploaded env blob to Distributor bucket.")
+                blob = bucket.blob(f"{self.app_blob}.frontend.env")
+                blob.upload_from_string(self.app_info.fe_build_env)
+                logger.info(f"Uploaded FE env blob to Distributor bucket.")
+
+            if self.app_info.enabled_backend:
+                blob = bucket.blob(f"{self.app_blob}.backend.env")
+                blob.upload_from_string(self.app_info.be_env)
+                logger.info(f"Uploaded BE env blob to Distributor bucket.")
         else:
             logger.info(f"Bucket {DISTRIBUTOR_GCS_BUCKET} does not exist.")
 
