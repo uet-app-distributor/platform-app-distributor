@@ -137,6 +137,11 @@ class DeploymentManager:
                 backend_config = {
                     "backend_image": self.app_info.be_runtime,
                     "backend_image_version": self.app_info.be_runtime_version,
+                    "backend_env_vars": self._extract_environment_vars(
+                        self.app_info.be_env
+                    )
+                    if self.app_info.be_env
+                    else "",
                 }
                 template_vars.update(backend_config)
 
@@ -283,4 +288,4 @@ class DeploymentManager:
             self._upload_cloud_config(cloud_config)
 
         # Deploy
-        self._trigger_deployment_workflow()
+        # self._trigger_deployment_workflow()

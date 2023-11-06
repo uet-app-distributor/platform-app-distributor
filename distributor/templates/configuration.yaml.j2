@@ -7,19 +7,26 @@ frontend:
   image: {{ frontend_image }}
   version: {{ frontend_image_version }}
   static_dir: {{ frontend_static_dir -}}
-{% endif %}
   {%- if frontend_env_vars %}
   env:
   {%- for key, value in frontend_env_vars.items() %}
     {{ key }}: "{{ value }}"
   {%- endfor -%}
   {% endif -%}
+{% endif %}
 
 {% if enabled_backend %}
 backend:
   image: {{ backend_image }}
   version: {{ backend_image_version }}
+  {%- if backend_env_vars %}
+  env:
+  {%- for key, value in backend_env_vars.items() %}
+    {{ key }}: "{{ value }}"
+  {%- endfor -%}
+  {% endif -%}
 {% endif -%}
+
 {% if enabled_database %}
 database:
   image: {{ database_image }}
