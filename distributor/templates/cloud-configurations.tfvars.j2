@@ -1,3 +1,9 @@
+{% if cloud_provider == "aws" %}
 AWS_ACCESS_KEY_ID="{{ aws_access_key_id }}"
 AWS_SECRET_ACCESS_KEY="{{ aws_secret_access_key }}"
 AWS_REGION="ap-southeast-1"
+{% endif %}
+
+{% if cloud_provider == "gcp" %}
+GOOGLE_PROJECT="{{ gcp_project_id }}"
+{% endif %}

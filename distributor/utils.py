@@ -14,7 +14,8 @@ from settings import (
     CLOUD_CONFIG_TEMPLATE,
     DISTRIBUTOR_GCS_BUCKET,
     CUSTOMER_APPS_GCS_FOLDER,
-    CUSTOMER_MANAGED_DEPLOY_WORKFLOW,
+    CUSTOMER_MANAGED_DEPLOY_WORKFLOW_AWS,
+    CUSTOMER_MANAGED_DEPLOY_WORKFLOW_GCP,
     DEPLOYMENT_REPO,
     DEPLOYMENT_REPO_OWNER,
     DEPLOYMENT_WORKFLOW_FILE,
@@ -81,6 +82,8 @@ class CustomerAppInfo:
                 if self.cloud_provider == "aws":
                     self.aws_access_key_id = cloud_config["aws_access_key_id"]
                     self.aws_secret_access_key = cloud_config["aws_secret_access_key"]
+                elif self.cloud_provider == "gcp":
+                    self.gcp_project_id = cloud_config["gcp_project_id"]
 
         except Exception as error:
             logger.info("Invalid customer app configurations.")
@@ -149,10 +152,17 @@ class DeploymentManager:
                 template_vars["database_image"] = self.app_info.db_image
 
         elif config_template == CLOUD_CONFIG_TEMPLATE:
-            template_vars = {
-                "aws_access_key_id": self.app_info.aws_access_key_id,
-                "aws_secret_access_key": self.app_info.aws_secret_access_key,
-            }
+            if self.app_info.cloud_provider == "aws":
+                template_vars = {
+                    "cloud_provider": "aws",
+                    "aws_access_key_id": self.app_info.aws_access_key_id,
+                    "aws_secret_access_key": self.app_info.aws_secret_access_key,
+                }
+            elif self.app_info.cloud_provider == "gcp":
+                template_vars = {
+                    "cloud_provider": "gcp",
+                    "gcp_project_id": self.app_info.gcp_project_id,
+                }
 
         return template_vars
 
@@ -163,11 +173,13 @@ class DeploymentManager:
         return config
 
     def _prepare_workflow_id(self):
-        return (
-            CUSTOMER_MANAGED_DEPLOY_WORKFLOW
-            if self.app_info.customer_managed
-            else DEPLOYMENT_WORKFLOW_FILE
-        )
+        if self.app_info.customer_managed:
+            if self.app_info.cloud_provider == "aws":
+                return CUSTOMER_MANAGED_DEPLOY_WORKFLOW_AWS
+            elif self.app_info.cloud_provider == "gcp":
+                return CUSTOMER_MANAGED_DEPLOY_WORKFLOW_GCP
+        else:
+            return DEPLOYMENT_WORKFLOW_FILE
 
     def _prepare_backend_inputs(self):
         backend_inputs = {
@@ -288,4 +300,4 @@ class DeploymentManager:
             self._upload_cloud_config(cloud_config)
 
         # Deploy
-        # self._trigger_deployment_workflow()
+        self._trigger_deployment_workflow()

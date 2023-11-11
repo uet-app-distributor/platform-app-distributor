@@ -8,7 +8,8 @@ DEPLOYMENT_REPO = "platform-job-centre"
 DEPLOYMENT_REPO_OWNER = "uet-app-distributor"
 DEPLOYMENT_WORKFLOW_FILE = "deploy-customer-app.yaml"
 
-CUSTOMER_MANAGED_DEPLOY_WORKFLOW = "deploy-customer-app-dedicated-infra.yaml"
+CUSTOMER_MANAGED_DEPLOY_WORKFLOW_AWS = "deploy-customer-app-dedicated-infra.yaml"
+CUSTOMER_MANAGED_DEPLOY_WORKFLOW_GCP = "deploy-customer-app-dedicated-infra-gcp.yaml"
 
 LOG_LEVEL = "INFO"
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
